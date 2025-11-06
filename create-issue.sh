@@ -296,7 +296,7 @@ select_repository() {
         # 검색 선택
         if [ $choice -eq ${#fav_array[@]} ]; then
             echo -e "\n${YELLOW}검색어를 입력하세요:${NC}"
-            read -p "> " search_query
+            read -e -p "> " search_query
             repos=$(gh repo list --limit 100 --json nameWithOwner --jq '.[].nameWithOwner' | grep -i "$search_query")
         # 전체 목록 선택
         elif [ $choice -eq $((${#fav_array[@]} + 1)) ]; then
@@ -305,7 +305,7 @@ select_repository() {
     else
         # 즐겨찾기가 없는 경우
         echo -e "${YELLOW}검색어를 입력하거나 엔터를 눌러 전체 목록 보기:${NC}"
-        read -p "> " search_query
+        read -e -p "> " search_query
 
         if [ -z "$search_query" ]; then
             repos=$(gh repo list --limit 30 --json nameWithOwner --jq '.[].nameWithOwner')
@@ -409,7 +409,7 @@ select_labels() {
     elif [ $choice -eq $((${#menu_items[@]}-1)) ]; then
         # 직접 입력
         echo -e "${YELLOW}여러 개 선택 가능 (쉼표로 구분, 예: 1,3,5 또는 p1):${NC}"
-        read -p "> " label_choices
+        read -e -p "> " label_choices
 
         if [ -z "$label_choices" ]; then
             selected_labels=""
@@ -492,7 +492,7 @@ create_issue() {
 
     # 제목 입력
     echo -e "${BLUE}📝 Issue 제목 입력${NC}"
-    read -p "> " issue_title
+    read -e -p "> " issue_title
 
     if [ -z "$issue_title" ]; then
         echo -e "${RED}❌ 제목이 비어있습니다.${NC}"
@@ -597,7 +597,7 @@ manage_favorites() {
         case $choice in
             0)  # 즐겨찾기 추가
                 echo -e "\n${YELLOW}검색어를 입력하거나 엔터를 눌러 내 Repository 목록 보기:${NC}"
-                read -p "> " search_query
+                read -e -p "> " search_query
 
                 if [ -z "$search_query" ]; then
                     # 내 repository 목록
@@ -720,7 +720,7 @@ manage_label_presets() {
         case $choice in
             0)  # 프리셋 추가
                 echo -e "\n${YELLOW}프리셋 이름을 입력하세요 (예: bug,enhancement):${NC}"
-                read -p "> " preset_name
+                read -e -p "> " preset_name
 
                 if [ -n "$preset_name" ]; then
                     json_array_add "$PRESETS_FILE" "$preset_name"
@@ -812,7 +812,7 @@ settings_menu() {
         case $choice in
             0)  # 데이터 초기화
                 echo -e "\n${RED}⚠️  모든 데이터가 삭제됩니다. 계속하시겠습니까? (y/N)${NC}"
-                read -p "> " confirm
+                read -e -p "> " confirm
 
                 if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
                     rm -rf "$DATA_DIR"
