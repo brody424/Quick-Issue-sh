@@ -510,21 +510,8 @@ create_issue() {
     # Issue 생성
     echo -e "\n${BLUE}🚀 Issue 생성 중...${NC}"
 
-    # 🔍 검수필요 라벨이 Repository에 있는지 확인
+    # Repository의 기존 라벨 목록 가져오기
     repo_labels=$(gh api "/repos/${selected_repo}/labels" --jq '.[].name' 2>/dev/null)
-    if echo "$repo_labels" | grep -q "^🔍 검수필요$"; then
-        # 라벨이 이미 존재함
-        :
-    else
-        # 라벨이 없으면 생성
-        echo -e "${YELLOW}🔍 검수필요 라벨이 없습니다. 자동으로 생성합니다...${NC}"
-        gh label create "🔍 검수필요" --repo "${selected_repo}" --color "FBCA04" --description "검수가 필요한 이슈" 2>/dev/null
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✅ 🔍 검수필요 라벨이 생성되었습니다.${NC}"
-        else
-            echo -e "${YELLOW}⚠️  라벨 생성에 실패했습니다. 계속 진행합니다.${NC}"
-        fi
-    fi
 
     # 🔍 검수필요 라벨 자동 추가
     if [ -n "$selected_labels" ]; then
@@ -532,6 +519,65 @@ create_issue() {
     else
         selected_labels="🔍 검수필요"
     fi
+
+    # 선택된 모든 라벨 확인 및 없으면 자동 생성
+    IFS=',' read -ra label_list <<< "$selected_labels"
+    for label in "${label_list[@]}"; do
+        # 앞뒤 공백 제거
+        label=$(echo "$label" | xargs)
+
+        if [ -z "$label" ]; then
+            continue
+        fi
+
+        # 라벨이 Repository에 존재하는지 확인
+        if ! echo "$repo_labels" | grep -qF "$label"; then
+            # 라벨이 없으면 생성
+            echo -e "${YELLOW}🏷️  '$label' 라벨이 없습니다. 자동으로 생성합니다...${NC}"
+
+            # 라벨 종류에 따라 색상 지정
+            case "$label" in
+                *bug*|*🐛*)
+                    label_color="d73a4a"
+                    label_desc="버그 수정"
+                    ;;
+                *feature*|*✨*)
+                    label_color="a2eeef"
+                    label_desc="새로운 기능"
+                    ;;
+                *documentation*|*📝*)
+                    label_color="0075ca"
+                    label_desc="문서 관련"
+                    ;;
+                *idea*|*💡*)
+                    label_color="7057ff"
+                    label_desc="아이디어"
+                    ;;
+                *검수*)
+                    label_color="FBCA04"
+                    label_desc="검수가 필요한 이슈"
+                    ;;
+                *)
+                    label_color="ededed"
+                    label_desc=""
+                    ;;
+            esac
+
+            if [ -n "$label_desc" ]; then
+                gh label create "$label" --repo "${selected_repo}" --color "$label_color" --description "$label_desc" 2>/dev/null
+            else
+                gh label create "$label" --repo "${selected_repo}" --color "$label_color" 2>/dev/null
+            fi
+
+            if [ $? -eq 0 ]; then
+                echo -e "${GREEN}✅ '$label' 라벨이 생성되었습니다.${NC}"
+            else
+                echo -e "${YELLOW}⚠️  '$label' 라벨 생성에 실패했습니다. 해당 라벨 없이 진행합니다.${NC}"
+                # 실패한 라벨은 제거
+                selected_labels=$(echo "$selected_labels" | sed "s/,$label//g" | sed "s/$label,//g" | sed "s/$label//g")
+            fi
+        fi
+    done
 
     create_cmd="gh issue create --repo \"${selected_repo}\" --title \"${issue_title}\""
 
